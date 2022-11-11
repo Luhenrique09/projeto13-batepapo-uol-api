@@ -9,6 +9,14 @@ const participantsSchema = joi.object({
     name: joi.string().required().min(3),
 })
 
+const messagesSchema = joi.object({
+    from: joi.string(),
+    to: joi.string(),
+    text: joi.string(),
+    type: joi.string(),
+    time: joi.string(),
+});
+
 const app = express();
 dotenv.config();
 app.use(cors());
@@ -20,7 +28,7 @@ let db;
 try {
     mongoClient.connect()
     db = mongoClient.db("Bate_PapoUol");
-} catch (err){
+} catch (err) {
     console.log(err)
 }
 
@@ -38,14 +46,14 @@ app.post("/participants", async (req, res) => {
     }
 
     try {
-        const nome = await db.collection("participants").findOne({name: name});
+        const nome = await db.collection("participants").findOne({ name: name });
         if (nome) {
             res.sendStatus(409)
             return
         }
     } catch {
-       
-    }    
+
+    }
 
     try {
         await db.collection("participants").insertOne({
@@ -58,7 +66,7 @@ app.post("/participants", async (req, res) => {
     }
 
     try {
-        await db.collection("mensage").insertOne({
+        await db.collection("message").insertOne({
             from: name, to: 'Todos', text: 'entra na sala...', type: 'status', time: `${dayjs().$H}:${dayjs().$m}:${dayjs().$s}`
         })
         res.status(201);
@@ -67,51 +75,71 @@ app.post("/participants", async (req, res) => {
     }
 })
 
-app.get("/participants", (req, res) => {
+app.get("/participants", async (req, res) => {
 
-    db.collection("participants")
-        .find()
-        .toArray()
-        .then((participants) => {
-            res.send(participants);
-        }).catch(err => {
-            res.status(500).send(err);
-        })
+    try {
+        const participants = await db.collection("participants").find().toArray();
+        res.send(participants);
+    } catch (err) {
+        res.status(500).send(err);
+    }
 
 })
 
-app.post("/messages", (req, res) => {
+app.post("/messages", async (req, res) => {
     const { to, text, type } = req.body
-    const { from } = req.headers.user
+    const from = req.headers.user
+    const body = req.body
 
-    db.collection("message").insertOne({
-        from,
-        to,
-        text,
-        type,
-        time: `${dayjs().$H}:${dayjs().$m}:${dayjs().$s}`
-    }).then(response => {
-        res.status(201);
-    }).catch(err => res.status(422).send(err));
 
-})
+    const validation = messagesSchema.validate(body, { abortEarly: false });
+    try {
+        const participant = await db.collection("participants").findOne({ name: from });
+        if (!participant) {
+            res.sendStatus(409)
+            return
+        }
+    } catch {
 
-app.get("/messages", (req, res) => {
+    }
+    if (validation.error) {
+        const errors = validation.error.details.map((detail) => detail.message);
+        res.status(422).send(errors);
+        return;
+    }
 
-    db.collection("mensage")
-        .find()
-        .toArray()
-        .then((mensage) => {
-            res.send(mensage);
-        }).catch(err => {
-            res.status(500).send(err);
+    try {
+        await db.collection("message").insertOne({
+            from,
+            to,
+            text,
+            type,
+            time: `${dayjs().$H}:${dayjs().$m}:${dayjs().$s}`
         })
+        res.status(201);
+    } catch (err) {
+        res.status(422).send(err)
+    }
+})
+
+app.get("/messages", async (req, res) => {
+
+    try {
+        const message = await db.collection("message")
+            .find()
+            .toArray()
+        res.send(message);
+    } catch (err) {
+        res.status(500).send(err);
+    }
 
 
 })
-function apagaUser() {
 
+async function deleted() {
+   
 }
-setInterval(apagaUser, 15000);
+
+setInterval(deleted, 15000);
 
 app.listen(5000, () => console.log("Server running in port: 5000"));
