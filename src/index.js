@@ -41,8 +41,8 @@ app.post("/participants", async (req, res) => {
 
     if (validation.error) {
         const errors = validation.error.details.map((detail) => detail.message);
-        res.status(422).send(errors);
-        return;
+        return res.status(422).send(errors);
+        
     }
 
     try {
@@ -67,7 +67,7 @@ app.post("/participants", async (req, res) => {
 
     try {
         await db.collection("message").insertOne({
-            from: name, to: 'Todos', text: 'entra na sala...', type: 'status', time: `${dayjs().$H}:${dayjs().$m}:${dayjs().$s}`
+            from: name, to: 'Todos', text: 'entra na sala...', type: 'message', time: `${dayjs().$H}:${dayjs().$m}:${dayjs().$s}`
         })
         res.status(201);
     } catch {
@@ -123,23 +123,26 @@ app.post("/messages", async (req, res) => {
 })
 
 app.get("/messages", async (req, res) => {
-
+    const {limit} = req.query;
+    const userLogged = req.headers.user
     try {
-        const message = await db.collection("message")
-            .find()
-            .toArray()
-        res.send(message);
+        const message = await db.collection("message").find({}).toArray()
+        
+        if(userLogged){
+                    if(limit){
+                    
+                    res.send(message.slice(-limit));
+                   
+                }else
+                res.send(message);
+            }
     } catch (err) {
         res.status(500).send(err);
     }
-
-
 })
 
-async function deleted() {
+setInterval( async () => {
    
-}
+} ,15000);
 
-setInterval(deleted, 15000);
-
-app.listen(5000, () => console.log("Server running in port: 5000"));
+app.listen(5000, () => console.log(`Server running in port: ${5000}`)); 
