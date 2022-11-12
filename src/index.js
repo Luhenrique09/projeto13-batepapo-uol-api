@@ -165,14 +165,14 @@ app.post("/status", async (req, res) => {
 
 })
 setInterval(async () => {
-    const atual = Date.now();
+    const dateNew = Date.now();
     try {
-        const off = await db.collection("participants").find({}).toArray();
-        const deleted = off.find((obj) => obj.lastStatus < atual - 15000)
-        if (deleted) {
-            await db.collection("participants").deleteOne({ name: deleted.name })
+        const usersOff = await db.collection("participants").find({}).toArray();
+        const userDelete = usersOff.find((obj) => obj.lastStatus < dateNew - 15000)
+        if (userDelete) {
+            await db.collection("participants").deleteOne({ name: userDelete.name })
             await db.collection("message").insertOne({
-                from: deleted.name, to: 'Todos', text: 'sai da sala...', type: 'status', time: `${dayjs().$H}:${dayjs().$m}:${dayjs().$s}`
+                from: userDelete.name, to: 'Todos', text: 'sai da sala...', type: 'status', time: `${dayjs().$H}:${dayjs().$m}:${dayjs().$s}`
             })
         }
     } catch { }
