@@ -127,22 +127,44 @@ app.get("/messages", async (req, res) => {
     const userLogged = req.headers.user
     try {
         const message = await db.collection("message").find().toArray()
-        const messagesPrivate = message.filter((obj) => (obj.to === userLogged || obj.to === "Todos") || (obj.type === "private_message" && obj.to === userLogged) )
-        console.log(messagesPrivate)
+        const messagesPrivate = message.filter((obj) =>
+        ((obj.type === "message") ||
+            (obj.to === "Todos") ||
+            (obj.to === userLogged && obj.type === "private_message") ||
+            (obj.from === userLogged))
+        )
         if (userLogged) {
             if (limit) {
                 res.send(messagesPrivate.slice(-limit));
-            } 
+            }
         }
-        
     } catch (err) {
         res.status(500).send(err);
+    }
+})
+
+app.post("/status", async (req, res) => {
+    const user = req.headers.user
+    const participant = {
+        name: user,
+        lastStatus: Date.now(),
+    }
+    try {
+        const name = await db.collection("participants").findOne({ name: user })
+        
+        if (!name) {
+            res.sendStatus(404)
+            return;
+        }
+       await db.collection("participants").updateOne({ _id: name._id }, { $set: participant })
+        res.sendStatus(200)
+    } catch (err) {
+        console.log("errado ainda")
+        res.status(500).send(err)
     }
 
 
 })
-
-
 setInterval(async () => {
 
 }, 15000);
