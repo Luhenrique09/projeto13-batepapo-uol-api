@@ -151,22 +151,31 @@ app.post("/status", async (req, res) => {
     }
     try {
         const name = await db.collection("participants").findOne({ name: user })
-        
+
         if (!name) {
             res.sendStatus(404)
             return;
         }
-       await db.collection("participants").updateOne({ _id: name._id }, { $set: participant })
+        await db.collection("participants").updateOne({ _id: name._id }, { $set: participant })
         res.sendStatus(200)
     } catch (err) {
-        console.log("errado ainda")
-        res.status(500).send(err)
+        res.sendStatus(500)
     }
 
 
 })
 setInterval(async () => {
-
+    const atual = Date.now();
+    try {
+        const off = await db.collection("participants").find({}).toArray();
+        const deleted = off.find((obj) => obj.lastStatus < atual - 15000)
+        if (deleted) {
+            await db.collection("participants").deleteOne({ name: deleted.name })
+            await db.collection("message").insertOne({
+                from: deleted.name, to: 'Todos', text: 'sai da sala...', type: 'status', time: `${dayjs().$H}:${dayjs().$m}:${dayjs().$s}`
+            })
+        }
+    } catch { }
 }, 15000);
 
 
