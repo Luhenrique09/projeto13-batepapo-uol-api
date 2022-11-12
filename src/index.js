@@ -42,7 +42,7 @@ app.post("/participants", async (req, res) => {
     if (validation.error) {
         const errors = validation.error.details.map((detail) => detail.message);
         return res.status(422).send(errors);
-        
+
     }
 
     try {
@@ -67,7 +67,7 @@ app.post("/participants", async (req, res) => {
 
     try {
         await db.collection("message").insertOne({
-            from: name, to: 'Todos', text: 'entra na sala...', type: 'message', time: `${dayjs().$H}:${dayjs().$m}:${dayjs().$s}`
+            from: name, to: 'Todos', text: 'entra na sala...', type: 'status', time: `${dayjs().$H}:${dayjs().$m}:${dayjs().$s}`
         })
         res.status(201);
     } catch {
@@ -123,26 +123,29 @@ app.post("/messages", async (req, res) => {
 })
 
 app.get("/messages", async (req, res) => {
-    const {limit} = req.query;
+    const { limit } = req.query;
     const userLogged = req.headers.user
     try {
-        const message = await db.collection("message").find({}).toArray()
+        const message = await db.collection("message").find().toArray()
+        const messagesPrivate = message.filter((obj) => (obj.to === userLogged || obj.to === "Todos") || (obj.type === "private_message" && obj.to === userLogged) )
+        console.log(messagesPrivate)
+        if (userLogged) {
+            if (limit) {
+                res.send(messagesPrivate.slice(-limit));
+            } 
+        }
         
-        if(userLogged){
-                    if(limit){
-                    
-                    res.send(message.slice(-limit));
-                   
-                }else
-                res.send(message);
-            }
     } catch (err) {
         res.status(500).send(err);
     }
+
+
 })
 
-setInterval( async () => {
-   
-} ,15000);
+
+setInterval(async () => {
+
+}, 15000);
+
 
 app.listen(5000, () => console.log(`Server running in port: ${5000}`)); 
