@@ -34,9 +34,7 @@ try {
 
 app.post("/participants", async (req, res) => {
     const { name } = req.body;
-
     const body = req.body
-
     const validation = participantsSchema.validate(body, { abortEarly: false });
 
     if (validation.error) {
@@ -51,32 +49,28 @@ app.post("/participants", async (req, res) => {
             res.sendStatus(409)
             return
         }
-    } catch {
-
-    }
-
-    try {
         await db.collection("participants").insertOne({
-            name: name, lastStatus: Date.now()
-        })
+            name: name, 
+            lastStatus: Date.now()
+        });
+
+        await db.collection("message").insertOne({
+            from: name, 
+            to: 'Todos', 
+            text: 'entra na sala...', 
+            type: 'status', 
+            time: `${dayjs().$H}:${dayjs().$m}:${dayjs().$s}`
+        });
 
         res.status(201).send('usuario logado com sucesso!');
     } catch (err) {
         res.status(422).send(err)
     }
 
-    try {
-        await db.collection("message").insertOne({
-            from: name, to: 'Todos', text: 'entra na sala...', type: 'status', time: `${dayjs().$H}:${dayjs().$m}:${dayjs().$s}`
-        })
-        res.status(201);
-    } catch {
 
-    }
 })
 
 app.get("/participants", async (req, res) => {
-
     try {
         const participants = await db.collection("participants").find().toArray();
         res.send(participants);
@@ -91,7 +85,6 @@ app.post("/messages", async (req, res) => {
     const from = req.headers.user
     const body = req.body
 
-
     const validation = messagesSchema.validate(body, { abortEarly: false });
     try {
         const participant = await db.collection("participants").findOne({ name: from });
@@ -99,16 +92,11 @@ app.post("/messages", async (req, res) => {
             res.sendStatus(409)
             return
         }
-    } catch {
-
-    }
-    if (validation.error) {
-        const errors = validation.error.details.map((detail) => detail.message);
-        res.status(422).send(errors);
-        return;
-    }
-
-    try {
+        if (validation.error) {
+            const errors = validation.error.details.map((detail) => detail.message);
+            res.status(422).send(errors);
+            return;
+        }
         await db.collection("message").insertOne({
             from,
             to,
@@ -120,6 +108,7 @@ app.post("/messages", async (req, res) => {
     } catch (err) {
         res.status(422).send(err)
     }
+    
 })
 
 app.get("/messages", async (req, res) => {
@@ -128,7 +117,7 @@ app.get("/messages", async (req, res) => {
     try {
         const message = await db.collection("message").find().toArray()
         const messagesPrivate = message.filter((obj) =>
-        ((obj.type === "message") ||
+        (   (obj.type === "message") ||
             (obj.to === "Todos") ||
             (obj.to === userLogged && obj.type === "private_message") ||
             (obj.from === userLogged))
@@ -162,8 +151,8 @@ app.post("/status", async (req, res) => {
         res.sendStatus(500)
     }
 
-
 })
+
 setInterval(async () => {
     const dateNew = Date.now();
     try {
@@ -172,7 +161,11 @@ setInterval(async () => {
         if (userDelete) {
             await db.collection("participants").deleteOne({ name: userDelete.name })
             await db.collection("message").insertOne({
-                from: userDelete.name, to: 'Todos', text: 'sai da sala...', type: 'status', time: `${dayjs().$H}:${dayjs().$m}:${dayjs().$s}`
+                from: userDelete.name, 
+                to: 'Todos', 
+                text: 'sai da sala...', 
+                type: 'status', 
+                time: `${dayjs().$H}:${dayjs().$m}:${dayjs().$s}`
             })
         }
     } catch { }
